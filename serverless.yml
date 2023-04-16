@@ -1,0 +1,444 @@
+# serverless.yml
+#https://www.serverless.com/framework/docs/providers/aws/guide/serverless.yml
+
+# custom
+custom:
+  appName: pspc
+  domainName: security
+  serviceName: auth
+  bucketName: '${self:provider.stage}-${self:custom.appName}-${self:custom.domainName}-${self:custom.serviceName}-bucket'
+  stackName: '${self:provider.stage}-${self:custom.appName}-${self:custom.domainName}-${self:custom.serviceName}-stack'
+  tokenTableName: '${self:provider.stage}_${self:custom.appName}_token'
+  loggerMode: ALL
+  dynamodb:
+    start:
+      migrated: true
+  # serverless offline plugin setup
+  serverless-offline:
+    httpPort: 4000
+
+# Service name
+service: '${self:custom.appName}-${self:custom.domainName}-${self:custom.serviceName}'
+# Framework version constraint (semver constraint): '3', '^2.33'
+frameworkVersion: '3'
+# plugins
+plugins:
+  - serverless-offline
+  #- serverless-plugin-include-dependencies
+  - serverless-deployment-bucket
+  - serverless-iam-roles-per-function
+
+# providers
+provider:
+  name: aws
+  # Default stage (default: dev)
+  stage: ${opt:stage, 'dev'}
+  # Default region (default: us-east-1)
+  region: ${opt:region, 'us-east-1'}
+  # The AWS profile to use to deploy (default: "default" profile)
+  profile: default
+  # runtime
+  runtime: nodejs14.x
+  # Use a custom name for the CloudFormation stack
+  stackName: ${self:custom.stackName}
+  # Default memory size for functions (default: 1024MB)
+  memorySize: 128
+  # Processor architecture: 'x86_64' or 'arm64' via Graviton2 (default: x86_64)
+  architecture: arm64
+  # Default timeout for functions (default: 6 seconds)
+  # Note: API Gateway has a maximum timeout of 30 seconds
+  timeout: 15
+  # Duration for CloudWatch log retention (default: forever)
+  logRetentionInDays: 1
+  lambdaHashingVersion: 20201221
+  # Use function versioning (enabled by default)
+  versionFunctions: false
+  tracing:
+    # Can only be true if API Gateway is inside a stack.
+    apiGateway: true
+    # Optional, can be true (true equals 'Active'), 'Active' or 'PassThrough'
+    lambda: true
+  # Configure the S3 bucket used by Serverless Framework to deploy code packages to Lambda
+  # serverless-deployment-bucket
+  deploymentBucket:
+    # Name of an existing bucket to use (default: created by serverless)
+    name: ${self:custom.bucketName}
+    # On deployment, serverless prunes artifacts older than this limit (default: 5)
+    maxPreviousDeploymentArtifacts: 1
+    # Enable bucket versioning (default: false)
+    versioning: false
+    blockPublicAccess: true
+    serverSideEncryption: AES256
+    # Specific tags
+    tags:
+      barbapp:application: barbapp
+      barbapp:component: auth
+      barbapp:creator: jose.mejia
+      barbapp:domain-name: security
+      barbapp:layer: storage #application, network, integration
+
+  #https://www.serverless.com/framework/docs/providers/aws/guide/serverless.yml/#api-gateway-v1-rest-api-1
+  # Una forma de crear la api con serverless
+  # Use a custom name for the API Gateway API
+  #apiName: '${self:provider.stage}-${self:service}'
+  # Endpoint type for API Gateway REST API: edge or regional (default: edge)
+  endpointType: REGIONAL
+  # Optional API Gateway REST API global config
+  #apiGateway:
+    # Description for the API Gateway stage deployment
+    #description: API para administrar las sesiones
+    # Optional detailed Cloud Watch Metrics
+    #metrics: false
+    #minimumCompressionSize: 1024
+
+  # Global environments
+  environment:
+    DYNDB_TOKEN_TBL: ${self:custom.tokenTableName}
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    APP_NAME: ${self:custom.appName}
+    DOMAIN_NAME: ${self:custom.domainName}
+    SERVICE_NAME: ${self:custom.serviceName}
+    LOGGER_MODE: ${self:custom.loggerMode}
+    JTW_SECRET_VALUE: '${self:custom.appName}/18564B1D2DD86179A51363A991CBE'
+    JWT_TOKEN_LIFE: '365d'
+    DYNDB_SCAN_NUM_SEGMET: ${env:DYNDB_SCAN_NUM_SEGMET, '5'}
+    DYNDB_SCAN_TOTAL_SEGMET: ${env:DYNDB_SCAN_TOTAL_SEGMET, '5'}
+    DYNDB_SCAN_IS_SEGMENT: ${env:DYNDB_SCAN_IS_SEGMENT, 'false'}
+    DYNDB_SCAN_IS_PARALLEL: ${env:DYNDB_SCAN_IS_PARALLEL, 'false'}
+
+  # Global tags
+  tags:
+    barbapp:application: barbapp
+    barbapp:component: auth
+    barbapp:creator: jose.mejia
+    barbapp:domain-name: security
+    barbapp:layer: application #storage, network, integration
+
+  #stackTags:
+    #barbapp:application-id: barbapp
+    #barbapp:component-id: security-users
+    #barbapp:component-name: security-users
+    #barbapp:creator-name: security-users
+    #barbapp:creator-id: security-users
+    #barbapp:domain-name: security
+    #barbapp:layer: application #storage, network, integration
+
+package:
+  # Package this function as an individual artifact (default: false)
+  individually: false
+  patterns:
+    - node_modules/aws-sdk/**
+    - node_modules/aws-lambda/**
+    - package-lock.json
+    - src/**
+    - .gitignore
+    - .git/**
+
+functions:
+  authorizer:
+    name: ${self:provider.stage}-${self:service}-post-authorizer
+    description: Authorizer
+    handler: dist/application/aws/auth-handler.authorizerHandler
+    role: PSPCApiGateWayPermissionLambdaAuthorizer
+    timeout: 6
+    # https://docs.aws.amazon.com/lambda/latest/dg/provisioned-concurrency.html
+    # optional, Count of provisioned lambda instances.
+    # Simultaneidad reservada: la simultaneidad reservada garantiza el número máximo de instancias simultáneas para la función.
+    # Cuando una función tiene concurrencia reservada, ninguna otra función puede usar esa concurrencia. No se cobra por configurar la simultaneidad reservada para una función.
+    #provisionedConcurrency: 3
+    # optional, reserved concurrency limit for this function. By default, AWS uses account concurrency limit 50
+    # Simultaneidad aprovisionada: la simultaneidad aprovisionada inicializa una cantidad solicitada de entornos de ejecución para que estén preparados para responder de inmediato a las invocaciones de su función.
+    # Tenga en cuenta que la configuración de la simultaneidad aprovisionada genera cargos en su cuenta de AWS.
+    #reservedConcurrency: 50
+
+  sign-in:
+    name: ${self:provider.stage}-${self:service}-post-sign-in-http
+    description: Sign in an user
+    handler: dist/application/aws/auth-handler.signInHandler
+    iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-sign-in-http-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:PutItem
+        Resource:
+          - { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn"] }
+          - { "Fn::Join": [ "/", [ { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn" ] }, "index", "UsernameIndex" ]]}
+      - Effect: Allow
+        Action:
+          - lambda:InvokeFunction
+          - lambda:InvokeAsync
+        Resource:
+          #- "*"
+          - !Sub "arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-clients-users-get-user-by-username-and-pass"
+      - Effect: Allow
+        Action:
+          - xray:PutTelemetryRecords
+          - xray:PutTraceSegments
+        Resource: "*"
+    events:
+      # https://www.serverless.com/framework/docs/providers/aws/events/http-api/
+      - http:
+          method: POST
+          # Enable CORS. Don't forget to return the right header in your response
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            #origins:
+            #  - http://example.com
+            #  - http://example2.com
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          # Requires clients to add API keys values in the `x-api-key` header of their request
+          private: false
+          path: /${self:custom.appName}/${self:custom.domainName}/${self:custom.serviceName}/sign-in
+
+  sign-out:
+    name: ${self:provider.stage}-${self:service}-post-sign-out-http
+    description: Sign out
+    handler: dist/application/aws/auth-handler.signOutHandler
+    iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-sign-out-http-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:DeleteItem
+        Resource:
+          - { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn"] }
+          - { "Fn::Join": [ "/", [ { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn" ] }, "index", "UsernameIndex" ]]}
+      - Effect: Allow
+        Action:
+          - xray:PutTelemetryRecords
+          - xray:PutTraceSegments
+        Resource: "*"
+    events:
+      - http:
+          method: POST
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          private: false
+          path: /${self:custom.appName}/${self:custom.domainName}/${self:custom.serviceName}/sign-out
+          authorizer:
+          #  name: authorizer
+          #  resultTtlInSeconds: 0
+          #  identitySource: method.request.header.Authorization, context.identity.sourceIp
+          #  type: token #request
+            type: "TOKEN"
+            authorizerId: 
+              Ref: PSPCApiGatewayAuthorizer
+
+  refresh-token:
+    name: ${self:provider.stage}-${self:service}-post-refresh-token-http
+    description: refresh-token
+    handler: dist/application/aws/auth-handler.refreshTokenHandler
+    iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-refresh-token-http-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:DeleteItem
+        Resource:
+          - { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn"] }
+          - { "Fn::Join": [ "/", [ { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn" ] }, "index", "UsernameIndex" ]]}
+      - Effect: Allow
+        Action:
+          - xray:PutTelemetryRecords
+          - xray:PutTraceSegments
+        Resource: "*"
+    events:
+      - http:
+          method: POST
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+          private: false
+          path: /${self:custom.appName}/${self:custom.domainName}/${self:custom.serviceName}/refresh-token
+          #authorizer:
+          #  name: authorizer
+          #  resultTtlInSeconds: 0
+          #  identitySource: method.request.header.Authorization
+          #  type: token
+          authorizer:
+          #  name: authorizer
+          #  resultTtlInSeconds: 0
+          #  identitySource: method.request.header.Authorization, context.identity.sourceIp
+          #  type: token #request
+            type: "TOKEN"
+            authorizerId: 
+              Ref: PSPCApiGatewayAuthorizer
+
+#https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
+resources:
+  Resources:
+    TokenDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:custom.tokenTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - 
+            AttributeName: id
+            AttributeType: S
+          #- 
+          #  AttributeName: username
+          #  AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        #GlobalSecondaryIndexes:
+        #  - IndexName: UsernameIndex
+        #    KeySchema:
+        #      - AttributeName: username
+        #        KeyType: HASH
+        #    Projection:
+        #      ProjectionType: 'ALL'
+
+    ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: '${self:provider.stage}-${self:service}'
+        Description: 'API para administrar las sesiones'
+        #EndpointConfiguration: REGIONAL
+
+
+    # This response is needed for custom authorizer failures cors support. https://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html
+    ExpiredGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: EXPIRED_TOKEN
+        ResponseTemplates:
+          application/json: |
+            {
+              "success":false,
+              "message":"Token Expired",
+              "requestId":"$context.requestId"
+            }
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    AuthFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+            application/json: |
+              {
+                "message":$context.error.messageString,
+                "requestId":"$context.requestId"
+              }
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
+    DenyFailureGatewayResponse:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseTemplates:
+            #https://stackoverflow.com/a/49806967/10212963
+            application/json: |
+              {
+                "message":$context.authorizer.customErrorMessage,
+                "requestId":"$context.requestId"
+              }
+        ResponseType: ACCESS_DENIED
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '403'
+
+    PSPCApiGatewayAuthorizer:
+      Type: "AWS::ApiGateway::Authorizer"
+      Properties:
+        AuthorizerResultTtlInSeconds: 0
+        Name: "authorizer"
+        AuthorizerUri: !Sub "arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-${self:service}-post-authorizer/invocations"
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        Type: "TOKEN"
+        IdentitySource: "method.request.header.Authorization"
+      DependsOn:
+        - "ApiGatewayRestApi"
+
+    PSPCApiGateWayPermissionLambdaAuthorizer:
+      Type: "AWS::IAM::Role"
+      Properties:
+        RoleName: "PSPCApiGateWayPermissionLambdaAuthorizer"
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+                  - apigateway.amazonaws.com
+              Action:
+                - sts:AssumeRole
+                #- lambda:InvokeFunction
+              #SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:<api-id>/*/<method>/<resource>"
+        Policies:
+          - PolicyName: permission-policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:Query
+                    - dynamodb:DeleteItem
+                    - dynamodb:Scan
+                  Resource:
+                    - { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn"] }
+                    - { "Fn::Join": [ "/", [ { "Fn::GetAtt": ["TokenDynamoDBTable", "Arn" ] }, "index", "UsernameIndex" ]]}
+                - Effect: Allow
+                  Action:
+                    - xray:PutTelemetryRecords
+                    - xray:PutTraceSegments
+                  Resource: "*"
+
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lambda:InvokeAsync
+                  Resource: "*"
+      DependsOn:
+        - "ApiGatewayRestApi"
+
+    # https://repost.aws/knowledge-center/api-gateway-rest-api-lambda-integrations
+    PSPCAuthorizerLambdaPermission:
+      Type: "AWS::Lambda::Permission"
+      DependsOn:
+        - "ApiGatewayRestApi"
+        # El nombre de la funcion comienza siempre en mayuscula y se agrega LambdaFunction al final. Para este caso la funcion "authorizer" -> AuthorizerLambdaFunction
+        - "AuthorizerLambdaFunction"
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName: "${self:provider.stage}-${self:service}-post-authorizer"
+        Principal: apigateway.amazonaws.com

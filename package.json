@@ -1,0 +1,60 @@
+{
+  "name": "pspc_d_ms_security_auth",
+  "version": "1.0.0",
+  "description": "Component of security that allow manages auth",
+  "main": "dist/application/app.js",
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
+    "prestart": "npm run build",
+    "start": "tsc --build && serverless offline --stage dev --region us-east-1",
+    "deploy:serverless": "tsc --build && serverless deploy --stage dev --region us-east-1",
+    "deploy": "tsc --build && serverless deploy --stage dev --region us-east-1",
+    "remove": "serverless remove --stage dev --region us-east-1",
+    "deploy:prod": "tsc --build && serverless deploy --stage prod --region us-east-1",
+    "remove:prod": "serverless remove --stage prod --region us-east-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josmejia2401/pspc_d_ms_security_auth.git"
+  },
+  "author": "jose.mejia",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/josmejia2401/pspc_d_ms_security_auth/issues"
+  },
+  "homepage": "https://github.com/josmejia2401/pspc_d_ms_security_auth#readme",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/tests/*.spec.ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,ts,tsx}",
+      "!<rootDir>/node_modules/"
+    ]
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "3.312.0",
+    "@aws-sdk/client-lambda": "3.314.0",
+    "joi": "17.9.1",
+    "jsonwebtoken": "9.0.0",
+    "node-cache": "5.1.2",
+    "tslint": "6.1.3",
+    "uuid": "9.0.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "9.0.1",
+    "@types/node": "18.15.11",
+    "@types/uuid": "9.0.1",
+    "@typescript-eslint/eslint-plugin": "^5.58.0",
+    "@typescript-eslint/parser": "^5.58.0",
+    "eslint": "^8.38.0",
+    "serverless-deployment-bucket": "1.6.0",
+    "serverless-iam-roles-per-function": "3.2.0",
+    "serverless-offline": "12.0.4",
+    "typescript": "5.0.4"
+  }
+}
