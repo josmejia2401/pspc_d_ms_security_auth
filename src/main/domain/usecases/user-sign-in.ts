@@ -30,8 +30,8 @@ export class SignInUseCase {
                         "accessToken": availableToken[0].token,
                     }
                 }
-            }
-            const accessToken = JWT.sign({ username: userInfo.id, name: userInfo.fullName }, false);
+            } 
+            const accessToken = JWT.sign({ username: userInfo.id, name: userInfo.fullName });
             const decoded = JWT.decodeToken(accessToken);
             await this.tokenManage.create({
                 createAt: new Date(decoded!.iat!).toISOString(),

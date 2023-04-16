@@ -14,7 +14,7 @@ export function signInAdapter(): Fn {
                 username: event.body["username"],
             }, options);
             return {
-                "headers": {},
+                "headers": { },
                 "body": output,
                 "statusCode": 200,
             };

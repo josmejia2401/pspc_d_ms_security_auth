@@ -172,7 +172,7 @@ functions:
           - lambda:InvokeAsync
         Resource:
           #- "*"
-          - !Sub "arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-clients-users-get-user-by-username-and-pass"
+          - !Sub "arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-pspc-clients-users-get-user-by-username-and-pass"
       - Effect: Allow
         Action:
           - xray:PutTelemetryRecords
@@ -188,13 +188,14 @@ functions:
             #origins:
             #  - http://example.com
             #  - http://example2.com
-            headers: # <-- Specify allowed headers
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
+            headers: '*' # <-- Specify allowed headers
+              #- Content-Type
+              #- X-Amz-Date
+              #- Authorization
+              #- X-Api-Key
+              #- X-Amz-Security-Token
+              #- X-Amz-User-Agent
+              #- Access-Control-Allow-Origin
             allowCredentials: false
           # Requires clients to add API keys values in the `x-api-key` header of their request
           private: false
@@ -335,7 +336,6 @@ resources:
         ResponseTemplates:
           application/json: |
             {
-              "success":false,
               "message":"Token Expired",
               "requestId":"$context.requestId"
             }

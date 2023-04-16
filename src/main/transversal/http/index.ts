@@ -56,6 +56,9 @@ export async function instrumentLambda(fn: Fn, event: any, validatorOptions?: Va
         const output = await fn(requestEvent, { logger }, { authorization, origin, decodedToken });
         response.headers = {
             "Content-Type": "application/json",
+            "Access-Control-Allow-Headers" : "*",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
             ...output.headers
         };
         response.body = JSON.stringify(output.body);

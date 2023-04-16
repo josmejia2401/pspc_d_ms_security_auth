@@ -14,11 +14,11 @@ export class JWT {
             username: decodedPayload.username,
             password: decodedPayload.password,
         };
-        return this.sign(value, decodedPayload.isadmin);
+        return this.sign(value);
     }
 
 
-    static sign(value: any, isadmin: boolean): string {
+    static sign(value: any): string {
         const options: any = {
             expiresIn: Constants.JWT.TOKEN_LIFE,
             algorithm: 'HS256',
@@ -26,7 +26,6 @@ export class JWT {
             jwtid: Utils.buildUuid(),
             subject: value.username,
             keyid: "",
-            isadmin: isadmin,
         };
         const accessToken = sign(value, Constants.JWT.SECRET_VALUE, options);
         return accessToken;
