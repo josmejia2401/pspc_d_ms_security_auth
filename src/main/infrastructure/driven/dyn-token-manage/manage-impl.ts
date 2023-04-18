@@ -59,7 +59,7 @@ export class TokenManageImpl implements TokenManage {
             const params = {
                 TableName: Constants.AWS_DYNAMODB.DYNDB_TOKEN_TBL,
                 Key: {
-                    "id": { "S": id }
+                    "id": { "S": `${id}` }
                 },
                 UpdateExpression: update_expression,
                 ExpressionAttributeValues: attributes.expressionAttributeValues,
@@ -78,7 +78,7 @@ export class TokenManageImpl implements TokenManage {
             const params = {
                 TableName: Constants.AWS_DYNAMODB.DYNDB_TOKEN_TBL,
                 Key: {
-                    "id": { "S": id }
+                    "id": { "S": `${id}` }
                 },
                 ConditionExpression: "#userId=:userId",
                 ExpressionAttributeValues: {
