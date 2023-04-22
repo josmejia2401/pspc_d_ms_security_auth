@@ -44,7 +44,7 @@ export class AuthorizerUseCase {
             };
         } catch (error) {
             this.logger.error(error);
-            throw error;
+            throw new CustomError("Unauthorized", "Unauthorized", 401);
         }
     }
 }
