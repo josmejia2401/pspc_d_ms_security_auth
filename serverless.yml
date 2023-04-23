@@ -222,15 +222,10 @@ functions:
     events:
       - http:
           method: POST
+          # Enable CORS. Don't forget to return the right header in your response
           cors:
             origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
+            headers: '*'
             allowCredentials: false
           private: false
           path: /${self:custom.appName}/${self:custom.domainName}/${self:custom.serviceName}/sign-out
@@ -264,15 +259,10 @@ functions:
     events:
       - http:
           method: POST
+          # Enable CORS. Don't forget to return the right header in your response
           cors:
             origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
+            headers: '*'
             allowCredentials: false
           private: false
           path: /${self:custom.appName}/${self:custom.domainName}/${self:custom.serviceName}/refresh-token
