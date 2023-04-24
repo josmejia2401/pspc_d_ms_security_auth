@@ -132,7 +132,7 @@ provider:
 
 package:
   # Package this function as an individual artifact (default: false)
-  individually: false
+  individually: true
   patterns:
     - node_modules/aws-sdk/**
     - node_modules/aws-lambda/**
