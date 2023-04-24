@@ -16,6 +16,11 @@ custom:
   # serverless offline plugin setup
   serverless-offline:
     httpPort: 4000
+  webpack:
+    webpackConfig: 'webpack.config.js' # Name of webpack configuration file
+    includeModules: false # Node modules configuration for packaging
+    packager: 'npm' # Packager that will be used to package your external modules
+    excludeFiles: src/**/*.test.js # Provide a glob for files to ignore
 
 # Service name
 service: '${self:custom.appName}-${self:custom.domainName}-${self:custom.serviceName}'
@@ -23,6 +28,7 @@ service: '${self:custom.appName}-${self:custom.domainName}-${self:custom.service
 frameworkVersion: '3'
 # plugins
 plugins:
+  - serverless-webpack
   - serverless-offline
   #- serverless-plugin-include-dependencies
   - serverless-deployment-bucket
@@ -139,7 +145,7 @@ functions:
   authorizer:
     name: ${self:provider.stage}-${self:service}-post-authorizer
     description: Authorizer
-    handler: dist/application/aws/auth-handler.authorizerHandler
+    handler: dist/application/aws/authorizer-handler.authorizerHandler
     role: PSPCApiGateWayPermissionLambdaAuthorizer
     timeout: 6
     # https://docs.aws.amazon.com/lambda/latest/dg/provisioned-concurrency.html
@@ -155,7 +161,7 @@ functions:
   sign-in:
     name: ${self:provider.stage}-${self:service}-post-sign-in-http
     description: Sign in an user
-    handler: dist/application/aws/auth-handler.signInHandler
+    handler: dist/application/aws/signin-handler.signInHandler
     iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-sign-in-http-role
     iamRoleStatements:
       - Effect: Allow
@@ -204,7 +210,7 @@ functions:
   sign-out:
     name: ${self:provider.stage}-${self:service}-post-sign-out-http
     description: Sign out
-    handler: dist/application/aws/auth-handler.signOutHandler
+    handler: dist/application/aws/signout-handler.signOutHandler
     iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-sign-out-http-role
     iamRoleStatements:
       - Effect: Allow
@@ -241,7 +247,7 @@ functions:
   refresh-token:
     name: ${self:provider.stage}-${self:service}-post-refresh-token-http
     description: refresh-token
-    handler: dist/application/aws/auth-handler.refreshTokenHandler
+    handler: dist/application/aws/refresh-handler.refreshTokenHandler
     iamRoleStatementsName: ${self:provider.stage}-${self:service}-post-refresh-token-http-role
     iamRoleStatements:
       - Effect: Allow
