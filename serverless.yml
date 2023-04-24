@@ -178,7 +178,7 @@ functions:
           - lambda:InvokeAsync
         Resource:
           #- "*"
-          - !Sub "arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-pspc-clients-users-get-user-by-username-and-pass"
+          - !Sub "arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:provider.stage}-${self:custom.appName}-clients-users-get-user-by-username-and-pass"
       - Effect: Allow
         Action:
           - xray:PutTelemetryRecords
