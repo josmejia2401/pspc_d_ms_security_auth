@@ -7,7 +7,7 @@ export class JWT {
     static refreshToken(token: string) {
         const newToken = Utils.getOnlyToken(token);
         const decodedPayload: any = verify(newToken, Constants.JWT.SECRET_VALUE, {
-            audience: "barbapp",
+            audience: Constants.APP_NAME,
             algorithms: ['HS256'],
         });
         const value = {
@@ -22,7 +22,7 @@ export class JWT {
         const options: any = {
             expiresIn: Constants.JWT.TOKEN_LIFE,
             algorithm: 'HS256',
-            audience: "barbapp",
+            audience: Constants.APP_NAME,
             jwtid: Utils.buildUuid(),
             subject: value.username,
             keyid: "",
@@ -34,7 +34,7 @@ export class JWT {
     static validateToken(token: string) {
         const newToken = Utils.getOnlyToken(token);
         verify(newToken, Constants.JWT.SECRET_VALUE, {
-            audience: "barbapp",
+            audience: Constants.APP_NAME,
             algorithms: ['HS256'],
         });
     }
